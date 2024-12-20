@@ -15,5 +15,8 @@
   "license": "ISC",
   "dependencies": {
     "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2"
   }
 }
