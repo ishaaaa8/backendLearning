@@ -53,7 +53,7 @@ const userSchema =new mongoose.Schema(
 
 userSchema.pre("save", async function(next) {
     if(! this.isModified("password")) return next();
-    this.password = bcrypt.hash(this.password, 10)
+    this.password = await bcrypt.hash(this.password, 10)
     next()
     //thebabove statemnet ecrypt the password every time password is created or regenerated , or changed
     // the if condtn checks... if the pswrd is modified and hence preventing the encrypt again when some other field like username is changed.
