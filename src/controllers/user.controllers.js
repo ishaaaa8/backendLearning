@@ -12,7 +12,7 @@ const registerUser = asyncHandler( async (req, res) => {
     //files : cover image , avatar 
     //upload them to cloudinary 
     //create user object  - create entry in db of the object 
-    //db will return the  created object and rmeove password abd refresh token field from response
+    //db will return sthe  created object and rmeove password abd refresh token field from response
     //check for user creation
     //return res
 
@@ -20,20 +20,22 @@ const registerUser = asyncHandler( async (req, res) => {
     //get user detail from fontend: req.body
 
     const { fullname , username , email , password } = req.body
-     console.log("email: ", email);
+     console.log("email:s ", email);
 
     //  if( fullname === ""){
     //     throw new ApiError(400 , " fullname is required")
     //  }
 
     if(
-        [ fullname , email. username, password ].some((field) => field?.trime() === "" )
+        [ fullname , email, username, password ].some((field) => field?.trim() === "" )
     ){
         throw new ApiError(400, "All fields are required");
     }
 
     //check if user aldready exist
-   const existedUser = User.findOne({
+    //wheneever extracting , checking or using any db query ensure to use await as db is in other continent
+
+   const existedUser =await User.findOne({
     $or: [{ username }, { email }]
    })
 
@@ -43,7 +45,9 @@ const registerUser = asyncHandler( async (req, res) => {
 
    //req.files -> access given by multer
    //req.files?this is used because we might have or might not have files .. so use it optionally
-   const avatarLOcalPath = req.fles?.avatar[0]?.path;
+   console.log(username);
+   console.log(username.toLowerCase());
+   const avatarLOcalPath = req.files?.avatar[0]?.path;
    const coverImageLocalPath = req.files?.coverImage[0]?.path;
    if(!avatarLOcalPath){
     throw new ApiError(400,"Avatar file is required");
@@ -68,6 +72,7 @@ const registerUser = asyncHandler( async (req, res) => {
    })
 
    console.log(user);
+
    const checkIfUserIsCreated = await User.findById(user._id).select(
     "-password -refreshToken"
    );
@@ -78,7 +83,7 @@ const registerUser = asyncHandler( async (req, res) => {
    //return response 
    //properly structured respnonse -> ApiResponse   
    return res.status(201).json(
-    new ApiResponse(200,createdUser,"USer registeered successfully")
+    new ApiResponse(200,checkIfUserIsCreated,"USer registeered successfully")
    )
 
 })
