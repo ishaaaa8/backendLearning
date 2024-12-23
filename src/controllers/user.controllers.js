@@ -335,7 +335,68 @@ const updateAccountDetails = asyncHandler( async (req, res) => {
 
  });
 
+ const getUserChannelProfile = asyncHandler( async (req, res) => {
+    const {username} = req.params
+    if(!username?.trim()){
+        throw new ApiError(400, "Username is missing")
+    }  
+    //mongoose aggregation pipeline
+    const channel =await User.aggregate([
+        {
+            $match:{
+                username: username?.toLowerCase()
+            }
+        },
+        {
+            //to find all subscriber of above user
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        },
+        {
+            //to find all the channels above user has subscribed to 
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
+            }
+        },
+        {
+            $addFields: {
+                subscriberCount: { $size: "$subscribers" },
+                subscribedToCount: { $size: "$subscribedTo" },
+                isSubscribed: {
+                    if: {$in: [req.user?._id, "$subscribers.subscriber"]}, 
+                    then: true,
+                    else: false
+                }
+
+            }
+        },
+        {
+            $project: {
+                fullname: 1,
+                username: 1,
+                subscriberCount: 1,
+                subscribedToCount: 1,
+                email: 1,
+                avatar: 1,
+                coverImage: 1,
+                isSubscribed: 1
+            }
+        }
+    ])
+    if(!channel?.length){
+        throw new ApiError(404, "No channel found")
+    }
+    return res.status(200).json(new ApiResponse(200, channel[0], "Channel profile fetched successfully"));  // console.log(channel);
+ });
+
 export { registerUser, loginUser,logoutUser ,
     refreshAccessToken, changeCurrentPassword,
-    getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage
+    getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, getUserChannelProfile
 }
