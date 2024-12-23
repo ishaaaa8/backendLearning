@@ -22,6 +22,10 @@ export const verifyJWT = asyncHandler(async( req , _ , next) => {
             throw new ApiError(401, "Invalid access token")
         }
         req.user = user;
+        //try printing "req" to see why abive statemnet is very very very important
+        
+        // console.log(req)
+        
         next();
     }catch(error){
         throw new ApiError(401, error.message || "Invalid access token")

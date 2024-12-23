@@ -182,7 +182,8 @@ const logoutUser = asyncHandler( async(req,res) => {
         httpOnly : true,
         secure: true
     } //only server can modify cookies
-
+    console.log(req.user);
+    console.log("see above");
     return res.status(200).clearCookie("accessToken",options).clearCookie("refreshToken",options).json(new ApiResponse(200, {} , "User logged out"))
 
 } )
@@ -229,6 +230,112 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 }) 
 
+const changeCurrentPassword = asyncHandler( async (req, res) => {
+    //now before changing password ... we may think of veryfying if user is still logged in or not ... but need not to worry .. we have alreday created verifyJWT middleware that will take care of it.
+
+    const {currPassword , newPassword} = req.body
+    console.log(req.body);
+    console.log(req.user);
+    //check curr password in req body === user id vala old passwrd ... which is in req.user 
+    //we can perform it by aldready created function to check password is correct from userschema
+    const user = await User.findById(req.user?.id)
+    const isPasswordCorrect = await  user.isPasswordCorrect(currPassword);
+    if( !isPasswordCorrect){
+        throw new ApiError(401, "Invalid current password... Please provide correct password")
+    }
+    // //now i have to do updation of password
+    // req.user.password = newPassword
+    // await req.user.save({validateBeforeSave: false});
+    user.password = newPassword
+    await user.save({validateBeforeSave: false});
+    return res.status(200).json(new ApiResponse(200, {} , "Password changed successfully"))
+});
+
+const getCurrentUser = asyncHandler( async (req, res) => {
+    console.log("Current user: ");
+    console.log(req);
+    console.log(req.user);
+    return res.status(200).json(200,req.user,"User details fetched successfully")
+});
+
+const updateAccountDetails = asyncHandler( async (req, res) => {
+    //this is to particular update text details and not the files like avatar and cover image because for files it good practice to have seperate end points
+
+    const { fullname,email} = req.body
+    if( !fullname || !email){
+        throw new ApiError(400, "All fields are required");
+    }
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                fullname: fullname,
+                email: email
+            }
+        },
+        { new: true }
+    ).select("-password")
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, user, "User details updated successfully"))
+});
+
+//files update //multer needed // check logged in
+ const updateUserAvatar = asyncHandler( async (req, res) => {
+    //new image 
+    const avatarLocalPath = req.file?.path
+    if(!avatarLocalPath){
+        throw new ApiError(400, "Avatar file is required")
+    }
+    const avatar = await uploadOnCloudinary(avatarLocalPath)
+
+    if(!avatar.url){
+        throw new ApiError(400, "error in uploading avatar")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                avatar: avatar.url
+            }
+        },
+        { new: true }
+    ).select("-password")
+
+    res.status(200).json(new ApiResponse(200, user, "Avatar updated successfully"))
+
+ });
+
+
+ const updateUserCoverImage = asyncHandler( async (req, res) => {
+    //new image 
+    const coverImageLocalPath = req.file?.path
+    if(!coverImageLocalPath){
+        throw new ApiError(400, "Avatar file is required")
+    }
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+
+    if(!coverImage.url){
+        throw new ApiError(400, "error in uploading cover img")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                coverImage: coverImageLocalPath.url
+            }
+        },
+        { new: true }
+    ).select("-password")
+
+    res.status(200).json(new ApiResponse(200, user, "Cover image updated successfully"))
+
+ });
+
 export { registerUser, loginUser,logoutUser ,
-    refreshAccessToken
+    refreshAccessToken, changeCurrentPassword,
+    getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage
 }
